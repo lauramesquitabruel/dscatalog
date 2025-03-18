@@ -1,8 +1,7 @@
 package com.devsuperior.dscatalog.resources;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,6 +64,8 @@ public class ProductResourceTests {
         Mockito.doNothing().when(service).delete(existingId);
         Mockito.doThrow(DataIntegrityViolationException.class).when(service).delete(dependetId);
         Mockito.doThrow(ResourceNotFoundException.class).when(service).delete(nonExistingId);
+
+        Mockito.when(service.insert(ArgumentMatchers.any())).thenReturn(dto);
     }
 
     @Test
@@ -109,6 +110,31 @@ public class ProductResourceTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_JSON));
 
+        result.andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void insertShouldReturnCreatedProductDTO() throws Exception{
+        String jsonBody = objectMapper.writeValueAsString(dto);
+
+        ResultActions result = mockMvc.perform(post("/products")
+                .content(jsonBody)
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON));
+
+        result.andExpect(status().isCreated());
+        result.andExpect(jsonPath("$.id").exists());
+    }
+
+    @Test
+    public void deleteShouldReturnNoContentWhenIdExists() throws Exception{
+        ResultActions result = mockMvc.perform(delete("/products/{id}", existingId));
+        result.andExpect(status().isNoContent());
+    }
+
+    @Test
+    public void deleteShouldReturnNotFoundWhenIdDoesntExists() throws Exception{
+        ResultActions result = mockMvc.perform(delete("/products/{id}", nonExistingId));
         result.andExpect(status().isNotFound());
     }
 }
